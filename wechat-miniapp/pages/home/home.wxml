@@ -1,0 +1,55 @@
+<view class="container">
+  <view class="status-bar">
+    <text class="status-dot {{connected ? 'online' : 'offline'}}"></text>
+    <text>{{connected ? '已连接' : '未连接'}}</text>
+    <text class="time">{{updateTime}}</text>
+  </view>
+
+  <view class="env-row">
+    <view class="card card-half">
+      <view class="card-icon">🌡</view>
+      <view class="card-value">{{temperature}}°C</view>
+      <view class="card-label">温度</view>
+    </view>
+    <view class="card card-half">
+      <view class="card-icon">💧</view>
+      <view class="card-value">{{humidity}}%</view>
+      <view class="card-label">湿度</view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-header">
+      <text class="card-title">❤ 心率</text>
+      <text class="card-status {{hrNormal ? '' : 'alert'}}">{{hrWarning || '正常'}}</text>
+    </view>
+    <view class="card-value-large">{{heartRate}} bpm</view>
+  </view>
+
+  <view class="env-row">
+    <view class="card card-half">
+      <view class="card-title">🏃 今日活动</view>
+      <view class="card-value">{{activityCount}} 次</view>
+    </view>
+    <view class="card card-half">
+      <view class="card-title">🍽 下次喂食</view>
+      <view class="card-value">{{nextFeed}}</view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-header">
+      <text class="card-title">💡 灯光</text>
+      <text class="card-status">{{ledBrightness > 0 ? '开' : '关'}}</text>
+    </view>
+    <view class="card-sub">{{brightnessPct}}% 亮度</view>
+  </view>
+
+  <view class="card">
+    <view class="card-header">
+      <text class="card-title">🌀 散热风扇</text>
+      <text class="card-status {{fanOn ? 'warn' : ''}}">{{fanOn ? '运行中' : '待机'}}</text>
+    </view>
+    <view class="card-sub">触发条件: 温度>{{tempHigh}}°C 或 湿度>{{humHigh}}%</view>
+  </view>
+</view>

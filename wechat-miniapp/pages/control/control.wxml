@@ -1,0 +1,23 @@
+<view class="container">
+  <view class="card">
+    <view class="card-title">🍽 手动喂食</view>
+    <button class="feed-btn" bindtap="onFeed">立即投食</button>
+    <view class="feed-info">上次喂食: {{lastFeed}}</view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">💡 LED 亮度</view>
+    <view class="led-display">
+      <view class="led-circle {{ledBrightness > 0 ? 'on' : ''}}"></view>
+      <text class="led-value">{{brightnessPct}}%</text>
+    </view>
+    <slider min="0" max="255" value="{{ledBrightness}}" bindchange="onSlider" block-size="24" activeColor="#2d6cdf"/>
+    <view class="quick-btns">
+      <button class="qbtn" bindtap="setLed" data-val="0">关</button>
+      <button class="qbtn" bindtap="setLed" data-val="64">暗</button>
+      <button class="qbtn" bindtap="setLed" data-val="128">中</button>
+      <button class="qbtn" bindtap="setLed" data-val="192">亮</button>
+      <button class="qbtn" bindtap="setLed" data-val="255">满</button>
+    </view>
+  </view>
+</view>

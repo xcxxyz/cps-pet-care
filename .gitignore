@@ -1,0 +1,9 @@
+# CPS Smart Pet Care System
+node_modules/
+.pio/
+__pycache__/
+*.pyc
+.DS_Store
+bridge/node_modules/
+wokwi/.pio/
+wokwi/src/

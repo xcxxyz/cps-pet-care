@@ -1,0 +1,45 @@
+{
+  "pages": [
+    "pages/home/home",
+    "pages/control/control",
+    "pages/data/data",
+    "pages/settings/settings"
+  ],
+  "window": {
+    "navigationBarTitleText": "智能宠物看护",
+    "navigationBarBackgroundColor": "#2d6cdf",
+    "navigationBarTextStyle": "white"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#2d6cdf",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页",
+        "iconPath": "images/home.png",
+        "selectedIconPath": "images/home-active.png"
+      },
+      {
+        "pagePath": "pages/control/control",
+        "text": "控制",
+        "iconPath": "images/control.png",
+        "selectedIconPath": "images/control-active.png"
+      },
+      {
+        "pagePath": "pages/data/data",
+        "text": "数据",
+        "iconPath": "images/data.png",
+        "selectedIconPath": "images/data-active.png"
+      },
+      {
+        "pagePath": "pages/settings/settings",
+        "text": "我的",
+        "iconPath": "images/settings.png",
+        "selectedIconPath": "images/settings-active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

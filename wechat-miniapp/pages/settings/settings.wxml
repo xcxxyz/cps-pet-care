@@ -1,0 +1,45 @@
+<view class="container">
+  <view class="card">
+    <view class="card-title">⏰ 定时喂食</view>
+    <view class="feed-time" wx:for="{{feedTimes}}" wx:key="index">
+      <text>喂食 {{index + 1}}</text>
+      <picker mode="time" value="{{item}}" bindchange="onTimeChange" data-index="{{index}}">
+        <text class="time-picker">{{item || '请选择时间'}}</text>
+      </picker>
+    </view>
+    <button class="add-btn" bindtap="addFeedTime">+ 添加时段</button>
+    <button class="save-btn" bindtap="saveFeedTimes">保存喂食计划</button>
+  </view>
+
+  <view class="card">
+    <view class="card-title">🌡 环境阈值</view>
+    <view class="setting-row">
+      <text>温度上限 (°C)</text>
+      <input type="number" value="{{tempHigh}}" bindinput="onInput" data-field="tempHigh"/>
+    </view>
+    <view class="setting-row">
+      <text>湿度上限 (%)</text>
+      <input type="number" value="{{humHigh}}" bindinput="onInput" data-field="humHigh"/>
+    </view>
+    <button class="save-btn" bindtap="saveEnv">保存环境阈值</button>
+  </view>
+
+  <view class="card">
+    <view class="card-title">❤ 心率阈值</view>
+    <view class="setting-row">
+      <text>心率下限 (bpm)</text>
+      <input type="number" value="{{hrLow}}" bindinput="onInput" data-field="hrLow"/>
+    </view>
+    <view class="setting-row">
+      <text>心率上限 (bpm)</text>
+      <input type="number" value="{{hrHigh}}" bindinput="onInput" data-field="hrHigh"/>
+    </view>
+    <button class="save-btn" bindtap="saveHr">保存心率阈值</button>
+  </view>
+
+  <view class="card">
+    <view class="card-title">ℹ️ 关于</view>
+    <view class="about-text">CPS智能宠物看护系统 v2.0</view>
+    <view class="about-text">ESP32 + 华为云IoTDA + 微信小程序</view>
+  </view>
+</view>

@@ -1,0 +1,19 @@
+.container { padding: 16px; background: #f5f7fa; min-height: 100vh; }
+.status-bar { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #666; margin-bottom: 16px; padding: 10px 14px; background: #fff; border-radius: 10px; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; }
+.online { background: #34d399; box-shadow: 0 0 6px #34d399; }
+.offline { background: #ef4444; }
+.time { margin-left: auto; color: #999; }
+.env-row { display: flex; gap: 12px; margin-bottom: 12px; }
+.card { background: #fff; border-radius: 14px; padding: 18px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.card-half { flex: 1; text-align: center; padding: 20px 12px; }
+.card-icon { font-size: 28px; margin-bottom: 6px; }
+.card-value { font-size: 36px; font-weight: 700; color: #1a1a2e; }
+.card-value-large { font-size: 48px; font-weight: 700; color: #2d6cdf; text-align: center; margin: 8px 0; }
+.card-label { font-size: 13px; color: #999; margin-top: 4px; }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.card-title { font-size: 15px; font-weight: 600; color: #333; }
+.card-status { font-size: 13px; color: #34d399; font-weight: 500; }
+.card-status.alert { color: #ef4444; }
+.card-status.warn { color: #f59e0b; }
+.card-sub { font-size: 14px; color: #666; }

@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "editor": "wokwi",
+  "parts": [
+    { "id": "esp", "type": "board-esp32-devkit-c-v4", "top": 0, "left": 0, "attrs": {} },
+    { "id": "dht1", "type": "wokwi-dht22", "top": -200, "left": 300, "attrs": {} },
+    { "id": "sv1", "type": "wokwi-servo", "top": 200, "left": 300, "attrs": {} },
+    { "id": "led1", "type": "wokwi-led", "top": -300, "left": 300, "attrs": { "color": "yellow" } },
+    { "id": "r1", "type": "wokwi-resistor", "top": -300, "left": 180, "attrs": { "resistance": "220" } },
+    { "id": "ldr1", "type": "wokwi-photoresistor-sensor", "top": -80, "left": 300, "attrs": {} },
+    { "id": "pir1", "type": "wokwi-pir-motion-sensor", "top": 60, "left": 300, "attrs": {} },
+    { "id": "fan1", "type": "wokwi-dc-motor", "top": 120, "left": -300, "attrs": { "label": "散热风扇" } }
+  ],
+  "connections": [
+    ["dht1:VCC", "esp:3V3", "red", []],
+    ["dht1:GND", "esp:GND.1", "black", []],
+    ["dht1:SDA", "esp:D27", "green", []],
+    ["sv1:PWM", "esp:D16", "orange", []],
+    ["sv1:V+", "esp:VIN", "red", []],
+    ["sv1:GND", "esp:GND.2", "black", []],
+    ["led1:A", "r1:2", "red", []],
+    ["r1:1", "esp:D25", "green", []],
+    ["led1:C", "esp:GND.3", "black", []],
+    ["ldr1:GND", "esp:GND.4", "black", []],
+    ["ldr1:VCC", "esp:3V3", "red", []],
+    ["ldr1:AO", "esp:D33", "green", []],
+    ["pir1:VCC", "esp:3V3", "red", []],
+    ["pir1:GND", "esp:GND.5", "black", []],
+    ["pir1:OUT", "esp:D26", "yellow", []],
+    ["fan1:1", "esp:D14", "green", []],
+    ["fan1:2", "esp:GND.6", "black", []],
+    ["esp:TX", "$serialMonitor:RX", "", []],
+    ["esp:RX", "$serialMonitor:TX", "", []]
+  ]
+}
