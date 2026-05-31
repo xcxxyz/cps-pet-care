@@ -38,6 +38,8 @@ App({
     ws.onMessage((res) => {
       try {
         const d = JSON.parse(res.data);
+        if (d.type === 'temperature' || d.type === 'humidity' || d.type === 'heartrate')
+          console.log('[app]', d.type, d.value);
         if (d.type === 'feedSchedule') {
           this.globalData.feedSchedule = d.value;
         } else if (d.type !== undefined) {
@@ -55,7 +57,17 @@ App({
   notify(data) { this.globalData.listeners.forEach(f => f(data, this.globalData)); },
 
   sendCommand(cmd) {
-    const ws = this.globalData.socketTask;
-    if (ws) ws.send({ data: JSON.stringify(cmd) });
+    // 用 HTTP POST 发命令，不用 WebSocket
+    const data = {};
+    if (cmd.type === 'led') data.led = cmd.value;
+    if (cmd.type === 'feed') data.feed = cmd.value;
+    if (cmd.type === 'ledMode') data.ledMode = cmd.value;
+    if (cmd.type === 'feedTimes') data.feedTimes = cmd.value;
+    wx.request({
+      url: 'http://127.0.0.1:3000/api/data',
+      method: 'POST',
+      data: data,
+      header: { 'content-type': 'application/json' }
+    });
   }
 });

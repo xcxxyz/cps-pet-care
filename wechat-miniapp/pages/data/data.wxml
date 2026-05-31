@@ -2,33 +2,43 @@
   <view class="card">
     <view class="card-title">❤ 心率详情</view>
     <view class="hr-row">
-      <view class="hr-item">
-        <text class="hr-label">当前</text>
-        <text class="hr-value primary">{{heartRate}} bpm</text>
-      </view>
-      <view class="hr-item">
-        <text class="hr-label">平均</text>
-        <text class="hr-value">{{hrSummary.avg}}</text>
-      </view>
-      <view class="hr-item">
-        <text class="hr-label">最高/最低</text>
-        <text class="hr-value">{{hrSummary.max}}/{{hrSummary.min}}</text>
-      </view>
+      <view class="hr-item"><text class="hr-label">当前</text><text class="hr-value primary">{{heartRate}} bpm</text></view>
+      <view class="hr-item"><text class="hr-label">平均</text><text class="hr-value">{{hrSummary.avg}}</text></view>
+      <view class="hr-item"><text class="hr-label">最高/最低</text><text class="hr-value">{{hrSummary.max}}/{{hrSummary.min}}</text></view>
     </view>
   </view>
 
   <view class="card">
-    <view class="card-title">🏃 今日活动次数</view>
-    <view class="big-num">{{activityToday}}</view>
+    <view class="card-title">🏃 今日活动次数: {{activityToday}}</view>
   </view>
 
   <view class="card">
-    <view class="card-title">📈 实时趋势（温度/湿度/心率）</view>
-    <view class="legend">
-      <text class="leg-dot" style="background:#ff6b6b"></text><text>温度</text>
-      <text class="leg-dot" style="background:#4ecdc4"></text><text>湿度</text>
-      <text class="leg-dot" style="background:#a29bfe"></text><text>心率</text>
+    <view class="card-title">🌡 温度趋势 (°C)</view>
+    <view class="bar-row">
+      <block wx:for="{{tempBars}}" wx:key="index">
+        <view class="bar" style="height:{{item.h}}px; width:{{item.w}}px; background:#ff6b6b; flex-shrink:1;"></view>
+      </block>
+      <text wx:if="{{!tempBars.length}}" class="empty-hint">等待数据...</text>
     </view>
-    <canvas type="2d" id="chart" class="chart"></canvas>
+  </view>
+
+  <view class="card">
+    <view class="card-title">💧 湿度趋势 (%)</view>
+    <view class="bar-row">
+      <block wx:for="{{humBars}}" wx:key="index">
+        <view class="bar" style="height:{{item.h}}px; width:{{item.w}}px; background:#4ecdc4; flex-shrink:1;"></view>
+      </block>
+      <text wx:if="{{!humBars.length}}" class="empty-hint">等待数据...</text>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">❤ 心率趋势 (bpm)</view>
+    <view class="bar-row">
+      <block wx:for="{{hrBars}}" wx:key="index">
+        <view class="bar" style="height:{{item.h}}px; width:{{item.w}}px; background:#a29bfe; flex-shrink:1;"></view>
+      </block>
+      <text wx:if="{{!hrBars.length}}" class="empty-hint">等待数据...</text>
+    </view>
   </view>
 </view>

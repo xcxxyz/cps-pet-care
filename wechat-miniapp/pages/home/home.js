@@ -2,30 +2,31 @@ const app = getApp();
 
 Page({
   data: {
-    connected: false, temperature: '--', humidity: '--', heartRate: '--',
-    activityCount: 0, nextFeed: '--', ledBrightness: 0, brightnessPct: '0',
-    fanOn: false, fanSpeed: 0, updateTime: ''
+    temperature: '--', humidity: '--', heartRate: '--',
+    activityCount: 0, ledBrightness: 0, brightnessPct: '0',
+    fanOn: false, updateTime: ''
   },
+  timer: null,
 
-  onLoad() {
-    this._onData = this._onData.bind(this);
-    app.subscribe(this._onData);
-  },
-  onUnload() { app.unsubscribe(this._onData); },
+  onLoad() { this.fetch(); this.timer = setInterval(() => this.fetch(), 3000); },
+  onUnload() { clearInterval(this.timer); },
 
-  _onData(_, g) {
-    const s = g.latest;
-    this.setData({
-      connected: g.connected,
-      temperature: s.temperature || '--',
-      humidity: s.humidity || '--',
-      heartRate: s.heartrate || '--',
-      activityCount: s.activity || 0,
-      ledBrightness: s.led || 0,
-      brightnessPct: Math.round((s.led || 0) / 255 * 100).toString(),
-      fanOn: s.fanOn === 1 || s.fanOn === true,
-      fanSpeed: s.fanSpeed || 0,
-      updateTime: g.connected ? new Date().toLocaleTimeString() : '连接中...'
+  fetch() {
+    wx.request({
+      url: 'http://127.0.0.1:3000/api/state',
+      success: (res) => {
+        const s = res.data;
+        this.setData({
+          temperature: s.temperature || '--',
+          humidity: s.humidity || '--',
+          heartRate: s.heartrate || '--',
+          activityCount: s.activity || 0,
+          ledBrightness: s.led || 0,
+          brightnessPct: Math.round((s.led || 0) / 255 * 100).toString(),
+          fanOn: s.fanOn === 1 || s.fanOn === true,
+          updateTime: new Date().toLocaleTimeString()
+        });
+      }
     });
   }
 });
