@@ -6,12 +6,15 @@
   </view>
 
   <view class="card">
-    <view class="card-title">💡 LED 亮度</view>
+    <view class="card-title">
+      <text>💡 LED 亮度</text>
+      <text class="mode-tag {{ledMode === 'auto' ? 'auto' : 'manual'}}">{{ledMode === 'auto' ? '自动' : '手动'}}</text>
+    </view>
     <view class="led-display">
       <view class="led-circle {{ledBrightness > 0 ? 'on' : ''}}"></view>
       <text class="led-value">{{brightnessPct}}%</text>
     </view>
-    <slider min="0" max="255" value="{{ledBrightness}}" bindchange="onSlider" block-size="24" activeColor="#2d6cdf"/>
+    <slider min="0" max="255" value="{{ledBrightness}}" bindchange="onSliderChange" bindchanging="onSliderChange" block-size="24" activeColor="#2d6cdf"/>
     <view class="quick-btns">
       <button class="qbtn" bindtap="setLed" data-val="0">关</button>
       <button class="qbtn" bindtap="setLed" data-val="64">暗</button>
@@ -19,5 +22,8 @@
       <button class="qbtn" bindtap="setLed" data-val="192">亮</button>
       <button class="qbtn" bindtap="setLed" data-val="255">满</button>
     </view>
+    <button class="auto-btn {{ledMode === 'auto' ? 'active' : ''}}" bindtap="toggleAuto">
+      {{ledMode === 'auto' ? '🔆 自动调光中' : '🔆 开启自动调光'}}
+    </button>
   </view>
 </view>

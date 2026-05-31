@@ -1,15 +1,12 @@
 .container { padding: 16px; background: #f5f7fa; min-height: 100vh; }
 .card { background: #fff; border-radius: 14px; padding: 20px; margin-bottom: 16px; }
 .card-title { font-size: 16px; font-weight: 600; color: #333; margin-bottom: 14px; }
-.chart { width: 100%; height: 200px; background: #f8f9fc; border-radius: 10px; }
 .hr-row { display: flex; gap: 12px; }
 .hr-item { flex: 1; text-align: center; }
 .hr-label { font-size: 12px; color: #999; display: block; margin-bottom: 4px; }
 .hr-value { font-size: 24px; font-weight: 700; color: #333; }
 .hr-value.primary { color: #2d6cdf; }
-.env-row { display: flex; gap: 12px; }
-.card-half { flex: 1; text-align: center; padding: 16px 0; }
-.card-value-sm { font-size: 28px; font-weight: 700; color: #1a1a2e; }
-.card-label-sm { font-size: 12px; color: #999; margin-top: 4px; }
-.trend-row { display: flex; align-items: flex-end; gap: 4px; height: 80px; padding: 8px 0; }
-.trend-dot { width: 8px; border-radius: 3px; min-height: 4px; flex: 1; }
+.big-num { font-size: 48px; font-weight: 700; color: #1a1a2e; text-align: center; }
+.chart { width: 100%; height: 260px; border-radius: 8px; }
+.legend { display: flex; align-items: center; gap: 4px 16px; flex-wrap: wrap; margin-bottom: 8px; font-size: 11px; color: #999; }
+.leg-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 2px; }

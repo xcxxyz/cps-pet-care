@@ -21,7 +21,7 @@ function generateMqttPassword() {
 let state = {
   temperature: 25, humidity: 60, light: 500, led: 128,
   heartrate: 80, activity: 0, fanOn: 0, fanSpeed: 0,
-  tempHigh: 28, humHigh: 75
+  tempHigh: 28, humHigh: 75, ledMode: 'auto'
 };
 let feedSchedule = ['08:00', '20:00'];
 let clients = new Set();
@@ -67,8 +67,15 @@ function createMqttClient() {
       const props = (msg.services && msg.services[0] && msg.services[0].properties) || msg;
       if (props.led !== undefined) {
         state.led = Math.min(255, Math.max(0, Number(props.led)));
+        state.ledMode = 'manual';
         broadcast({ type: 'led', value: state.led });
-        console.log('远程调光 -> LED:', state.led);
+        broadcast({ type: 'ledMode', value: 'manual' });
+        console.log('手动调光 -> LED:', state.led);
+      }
+      if (props.ledMode === 'auto') {
+        state.ledMode = 'auto';
+        broadcast({ type: 'ledMode', value: 'auto' });
+        console.log('切换自动调光');
       }
       if (props.tempHigh !== undefined) state.tempHigh = Number(props.tempHigh);
       if (props.humHigh !== undefined) state.humHigh = Number(props.humHigh);
@@ -149,7 +156,9 @@ setInterval(() => {
   state.humidity = Math.round(Math.max(30, Math.min(90, h)));
   state.light = Math.round(state.light + (Math.random() - 0.5) * 100);
   state.light = Math.max(200, Math.min(2000, state.light));
-  state.led = Math.round((1 - state.light / 4095) * 255);
+  if (state.ledMode === 'auto') {
+    state.led = Math.round((1 - state.light / 4095) * 255);
+  }
 
   if (state.temperature > state.tempHigh || state.humidity > state.humHigh) {
     state.fanOn = 1; state.fanSpeed = 255;
@@ -184,6 +193,36 @@ setInterval(() => {
 
 // ===================== HTTP + WebSocket =====================
 const server = http.createServer((req, res) => {
+  // POST /api/data — 接收 Wokwi 真实数据
+  if (req.method === 'POST' && req.url === '/api/data') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      try {
+        const d = JSON.parse(body);
+        // 自动调光
+        if (d.light !== undefined && state.ledMode === 'auto') {
+          state.led = Math.round((1 - d.light / 4095) * 255);
+          d.led = state.led;
+        }
+        for (const [k, v] of Object.entries(d)) {
+          if (state[k] !== undefined) state[k] = v;
+        }
+        broadcast({ type: 'ledMode', value: state.ledMode });
+        for (const [k, v] of Object.entries(d)) broadcast({ type: k, value: v });
+        // MQTT 上报华为云
+        if (mqttClient && mqttClient.connected) {
+          const topic = `$oc/devices/${CONFIG.hwCloud.deviceId}/sys/properties/report`;
+          mqttClient.publish(topic, JSON.stringify(buildReport()), { qos: 1 });
+        }
+        useSim = false; // 关闭仿真，使用真实数据
+        console.log('Wokwi:', JSON.stringify(d));
+      } catch (e) { console.error('API error:', e.message); }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ok', ...state }));
+    });
+    return;
+  }
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ status: 'ok', ...state }));
 });
@@ -201,7 +240,13 @@ wss.on('connection', (ws) => {
       const msg = JSON.parse(data.toString());
       if (msg.type === 'led') {
         state.led = Math.min(255, Math.max(0, Number(msg.value)));
+        state.ledMode = 'manual';
         broadcast({ type: 'led', value: state.led });
+        broadcast({ type: 'ledMode', value: 'manual' });
+      }
+      if (msg.type === 'ledMode' && msg.value === 'auto') {
+        state.ledMode = 'auto';
+        broadcast({ type: 'ledMode', value: 'auto' });
       }
       if (msg.type === 'feed') {
         broadcast({ type: 'feeding', value: 1 });

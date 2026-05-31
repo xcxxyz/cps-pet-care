@@ -13,7 +13,7 @@ DHT dht(DHT_PIN, DHT_TYPE);
 Servo feeder;
 
 int temperature = 0, humidity = 0, lightLevel = 0, ledBrightness = 0;
-int activityCount = 0, heartRate = 80;
+int activityCount = 0, heartRate = 80, fanSpeed = 0;
 bool feeding = false, motionDetected = false, fanOn = false;
 unsigned long lastReport = 0, feedTimer = 0;
 int tempHigh = 28, humHigh = 75;
@@ -39,9 +39,9 @@ void loop() {
     analogWrite(LED_PIN, ledBrightness);
 
     if (temperature > tempHigh || humidity > humHigh)
-      { fanOn = true; digitalWrite(FAN_PIN, HIGH); }
+      { fanOn = true; fanSpeed = 255; digitalWrite(FAN_PIN, HIGH); }
     else if (temperature <= tempHigh - 1 && humidity <= humHigh - 3)
-      { fanOn = false; digitalWrite(FAN_PIN, LOW); }
+      { fanOn = false; fanSpeed = 0; digitalWrite(FAN_PIN, LOW); }
     heartRate = 80 + random(-5, 8);
 
     Serial.printf("T:%d H:%d L:%d LED:%d HR:%d ACT:%d FAN:%d\n",
@@ -52,7 +52,7 @@ void loop() {
   if (pir == HIGH && !motionDetected) { motionDetected = true; activityCount++; delay(300); }
   if (pir == LOW) motionDetected = false;
 
-  if (!feeding && now > 15000 && now % 30000 < 5000) {
+  if (!feeding && now > 5000 && now % 30000 < 5000) {
     feeding = true; feedTimer = now; feeder.write(90);
     Serial.println("FEED:1");
   }

@@ -9,3 +9,8 @@
 .led-value { font-size: 28px; font-weight: 700; color: #333; }
 .quick-btns { display: flex; gap: 8px; margin-top: 12px; }
 .qbtn { flex: 1; font-size: 12px; padding: 6px 0; border-radius: 8px; background: #f0f2f5; color: #666; }
+.mode-tag { font-size: 12px; padding: 2px 10px; border-radius: 10px; margin-left: auto; }
+.mode-tag.auto { background: #d1fae5; color: #065f46; }
+.mode-tag.manual { background: #fef3c7; color: #92400e; }
+.auto-btn { width: 100%; margin-top: 12px; height: 40px; line-height: 40px; border-radius: 10px; background: #f0f2f5; color: #666; font-size: 14px; }
+.auto-btn.active { background: #d1fae5; color: #065f46; font-weight: 600; }

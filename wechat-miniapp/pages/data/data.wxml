@@ -18,39 +18,17 @@
   </view>
 
   <view class="card">
-    <view class="card-title">🏃 活动统计</view>
-    <view class="env-row">
-      <view class="card-half">
-        <view class="card-value-sm">{{actSummary.total}}</view>
-        <view class="card-label-sm">今日活动次数</view>
-      </view>
-      <view class="card-half">
-        <view class="card-value-sm">{{actSummary.perHour}}次/时</view>
-        <view class="card-label-sm">平均每小时</view>
-      </view>
-    </view>
+    <view class="card-title">🏃 今日活动次数</view>
+    <view class="big-num">{{activityToday}}</view>
   </view>
 
   <view class="card">
-    <view class="card-title">🌡 温湿度趋势 (近10次)</view>
-    <view class="trend-row">
-      <block wx:for="{{tempHistory}}" wx:key="t">
-        <view class="trend-dot" style="height:{{item.v}}px; background: #ff6b6b;"></view>
-      </block>
+    <view class="card-title">📈 实时趋势（温度/湿度/心率）</view>
+    <view class="legend">
+      <text class="leg-dot" style="background:#ff6b6b"></text><text>温度</text>
+      <text class="leg-dot" style="background:#4ecdc4"></text><text>湿度</text>
+      <text class="leg-dot" style="background:#a29bfe"></text><text>心率</text>
     </view>
-    <view class="trend-row">
-      <block wx:for="{{humHistory}}" wx:key="t">
-        <view class="trend-dot" style="height:{{item.v*0.3}}px; background: #4ecdc4;"></view>
-      </block>
-    </view>
-  </view>
-
-  <view class="card">
-    <view class="card-title">📈 心率趋势 (近10次)</view>
-    <view class="trend-row">
-      <block wx:for="{{hrHistory}}" wx:key="t">
-        <view class="trend-dot" style="height:{{item.v-40}}px; background: #a29bfe;"></view>
-      </block>
-    </view>
+    <canvas type="2d" id="chart" class="chart"></canvas>
   </view>
 </view>
