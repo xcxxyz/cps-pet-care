@@ -50,4 +50,11 @@
     </view>
     <view class="card-sub">触发条件: 温度>{{tempHigh}}°C 或 湿度>{{humHigh}}%</view>
   </view>
+
+  <view class="card" wx:if="{{visionType}}">
+    <view class="card-header">
+      <text class="card-title">📷 视觉识别</text>
+    </view>
+    <view class="card-sub">品种: {{visionType}} | 行为: {{visionBehavior}}</view>
+  </view>
 </view>

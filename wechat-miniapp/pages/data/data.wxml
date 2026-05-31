@@ -14,31 +14,16 @@
 
   <view class="card">
     <view class="card-title">🌡 温度趋势 (°C)</view>
-    <view class="bar-row">
-      <block wx:for="{{tempBars}}" wx:key="index">
-        <view class="bar" style="height:{{item.h}}px; width:{{item.w}}px; background:#ff6b6b; flex-shrink:1;"></view>
-      </block>
-      <text wx:if="{{!tempBars.length}}" class="empty-hint">等待数据...</text>
-    </view>
+    <canvas type="2d" id="cTemp" class="chart"></canvas>
   </view>
 
   <view class="card">
     <view class="card-title">💧 湿度趋势 (%)</view>
-    <view class="bar-row">
-      <block wx:for="{{humBars}}" wx:key="index">
-        <view class="bar" style="height:{{item.h}}px; width:{{item.w}}px; background:#4ecdc4; flex-shrink:1;"></view>
-      </block>
-      <text wx:if="{{!humBars.length}}" class="empty-hint">等待数据...</text>
-    </view>
+    <canvas type="2d" id="cHum" class="chart"></canvas>
   </view>
 
   <view class="card">
     <view class="card-title">❤ 心率趋势 (bpm)</view>
-    <view class="bar-row">
-      <block wx:for="{{hrBars}}" wx:key="index">
-        <view class="bar" style="height:{{item.h}}px; width:{{item.w}}px; background:#a29bfe; flex-shrink:1;"></view>
-      </block>
-      <text wx:if="{{!hrBars.length}}" class="empty-hint">等待数据...</text>
-    </view>
+    <canvas type="2d" id="cHR" class="chart"></canvas>
   </view>
 </view>

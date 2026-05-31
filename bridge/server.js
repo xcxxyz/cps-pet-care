@@ -21,7 +21,8 @@ function generateMqttPassword() {
 let state = {
   temperature: 25, humidity: 60, light: 500, led: 128,
   heartrate: 80, activity: 0, fanOn: 0, fanSpeed: 0,
-  tempHigh: 28, humHigh: 75, ledMode: 'auto'
+  tempHigh: 28, humHigh: 75, ledMode: 'auto',
+  vision_type: '', vision_behavior: ''
 };
 let feedSchedule = ['08:00', '20:00'];
 let clients = new Set();
@@ -149,7 +150,7 @@ wokwiPort.open();
 
 // ===================== 传感器仿真（Wokwi 未连接时使用） =====================
 setInterval(() => {
-  if (!useSim) return;  // Wokwi 在线时跳过仿真
+  // 始终运行仿真，Wokwi 数据通过 /api/data 覆盖
   const t = state.temperature + (Math.random() - 0.5) * 0.6;
   state.temperature = Math.round(Math.max(15, Math.min(40, t)));
   const h = state.humidity + (Math.random() - 0.5);
