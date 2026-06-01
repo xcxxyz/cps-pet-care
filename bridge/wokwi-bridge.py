@@ -45,5 +45,7 @@ while True:
                         print(f'Wokwi -> FEED:{val}')
                     except: pass
     except Exception as e:
-        print(f'Error: {e}, retrying in 3s...')
+        print(f'Error: {e}, retry 3s...')
         time.sleep(3)
+        try: ser.close()
+        except: pass
