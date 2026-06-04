@@ -7,3 +7,4 @@ __pycache__/
 bridge/node_modules/
 wokwi/.pio/
 wokwi/src/
+.idea/
