@@ -27,6 +27,15 @@ let state = {
 let feedSchedule = ['08:00', '20:00'];
 let clients = new Set();
 
+function writeToWokwi(cmd) {
+  const data = JSON.stringify({ cmd: cmd });
+  const req = http.request({ hostname: '127.0.0.1', port: 3001, path: '/api/cmd',
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': data.length }
+  }, () => {});
+  req.on('error', () => {});
+  req.write(data); req.end();
+}
+
 function broadcast(msg) {
   const s = JSON.stringify(msg);
   for (const ws of clients) if (ws.readyState === WebSocket.OPEN) ws.send(s);
@@ -71,11 +80,13 @@ function createMqttClient() {
         state.ledMode = 'manual';
         broadcast({ type: 'led', value: state.led });
         broadcast({ type: 'ledMode', value: 'manual' });
+        writeToWokwi('LED:' + state.led);
         console.log('手动调光 -> LED:', state.led);
       }
       if (props.ledMode === 'auto') {
         state.ledMode = 'auto';
         broadcast({ type: 'ledMode', value: 'auto' });
+        writeToWokwi('LED:auto');
         console.log('切换自动调光');
       }
       if (props.tempHigh !== undefined) state.tempHigh = Number(props.tempHigh);
@@ -201,8 +212,18 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         const d = JSON.parse(body);
-        // 自动调光
-        if (d.light !== undefined && state.ledMode === 'auto') {
+        // 小程序命令：无传感器字段=手动LED指令
+        const isCommand = d.temperature === undefined && d.light === undefined && d.humidity === undefined;
+        if (isCommand && d.led !== undefined) {
+          state.ledMode = 'manual'; d.ledMode = 'manual';
+          writeToWokwi('LED:' + d.led);
+        }
+        if (isCommand && d.ledMode === 'auto') {
+          state.ledMode = 'auto';
+          writeToWokwi('LED:auto');
+        }
+        // 自动调光 (Wokwi数据且在auto模式)
+        if (!isCommand && d.light !== undefined && state.ledMode === 'auto') {
           state.led = Math.round((1 - d.light / 4095) * 255);
           d.led = state.led;
         }
@@ -244,10 +265,12 @@ wss.on('connection', (ws) => {
         state.ledMode = 'manual';
         broadcast({ type: 'led', value: state.led });
         broadcast({ type: 'ledMode', value: 'manual' });
+        writeToWokwi('LED:' + state.led);
       }
       if (msg.type === 'ledMode' && msg.value === 'auto') {
         state.ledMode = 'auto';
         broadcast({ type: 'ledMode', value: 'auto' });
+        writeToWokwi('LED:auto');
       }
       if (msg.type === 'feed') {
         broadcast({ type: 'feeding', value: 1 });

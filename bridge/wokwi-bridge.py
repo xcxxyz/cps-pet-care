@@ -1,8 +1,25 @@
-"""读取 Wokwi RFC2217 串口，转发到 Bridge HTTP API"""
-import serial, urllib.request, json, time, re
+"""Wokwi RFC2217 双向桥接 — 读数据→HTTP, HTTP指令→写串口"""
+import serial, urllib.request, json, time, re, threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 PORT = 'rfc2217://localhost:4000'
 BRIDGE = 'http://localhost:3000/api/data'
+CMD_PORT = 3001
+ser = None
+lock = threading.Lock()
+
+class CmdHandler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        length = int(self.headers.get('Content-Length', 0))
+        body = json.loads(self.rfile.read(length)) if length > 0 else {}
+        with lock:
+            if ser and ser.is_open:
+                ser.write((body.get('cmd', '') + '\n').encode())
+        self.send_response(200); self.end_headers()
+    def log_message(self, *args): pass
+
+def serve(): HTTPServer(('127.0.0.1', CMD_PORT), CmdHandler).serve_forever()
+threading.Thread(target=serve, daemon=True).start()
 
 while True:
     try:
