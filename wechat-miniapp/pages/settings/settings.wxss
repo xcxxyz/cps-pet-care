@@ -2,7 +2,9 @@
 .card { background: #fff; border-radius: 14px; padding: 20px; margin-bottom: 16px; }
 .card-title { font-size: 16px; font-weight: 600; color: #333; margin-bottom: 14px; }
 .feed-time { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0; font-size: 15px; }
+.time-row-right { display: flex; align-items: center; gap: 12px; }
 .time-picker { color: #2d6cdf; font-size: 15px; }
+.del-btn { color: #e74c3c; font-size: 16px; padding: 4px 8px; }
 .add-btn { width: 100%; background: #f0f2f5; color: #666; border-radius: 10px; margin-top: 12px; }
 .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0; font-size: 15px; }
 .setting-row input { width: 80px; text-align: right; border: 1px solid #ddd; border-radius: 6px; padding: 6px; }

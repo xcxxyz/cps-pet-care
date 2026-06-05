@@ -3,11 +3,16 @@
     <view class="card-title">⏰ 定时喂食</view>
     <view class="feed-time" wx:for="{{feedTimes}}" wx:key="index">
       <text>喂食 {{index + 1}}</text>
-      <picker mode="time" value="{{item}}" bindchange="onTimeChange" data-index="{{index}}">
-        <text class="time-picker">{{item || '请选择时间'}}</text>
-      </picker>
+      <view class="time-row-right">
+        <picker mode="time" value="{{item}}" bindchange="onTimeChange" data-index="{{index}}">
+          <text class="time-picker">{{item || '请选择时间'}}</text>
+        </picker>
+        <text class="del-btn" bindtap="deleteFeedTime" data-index="{{index}}">✕</text>
+      </view>
     </view>
-    <button class="add-btn" bindtap="addFeedTime">+ 添加时段</button>
+    <picker mode="time" value="12:00" bindchange="onAddFeedTime" wx:if="{{feedTimes.length < 4}}">
+      <view class="add-btn">+ 添加时段</view>
+    </picker>
     <button class="save-btn" bindtap="saveFeedTimes">保存喂食计划</button>
   </view>
 

@@ -40,6 +40,9 @@
       }
     ]
   },
+  "networkTimeout": {
+    "connectSocket": 60000
+  },
   "style": "v2",
   "sitemapLocation": "sitemap.json"
 }

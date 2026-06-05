@@ -1,6 +1,7 @@
 const mqtt = require('mqtt');
 const WebSocket = require('ws');
 const http = require('http');
+const crypto = require('crypto');
 const { SerialPort } = require('serialport');
 
 // 与 tinkercad-three-end/bridge.js 完全相同配置
@@ -9,12 +10,20 @@ const CONFIG = {
     host: '49263b4a1c.st1.iotda-device.cn-north-4.myhuaweicloud.com',
     port: 8883,
     deviceId: '69fc054c7f2e6c302f6e5dfd_bridge_0',
+    secret: 'xcxxyz123456',
   },
   web: { port: 3000 },
 };
 
 function generateMqttPassword() {
-  return 'a311fcd11dd3e12f0b733b013e2694fbbc346a471ee542de8d6aee1bafc01e1d';
+  // HMAC-SHA256(key=timestamp, data=secret) — 与 C# 端一致
+  const ts = new Date().toISOString().slice(0, 13).replace(/[-:T]/g, '');
+  return crypto.createHmac('sha256', ts).update(CONFIG.hwCloud.secret).digest('hex');
+}
+
+function getClientId() {
+  const ts = new Date().toISOString().slice(0, 13).replace(/[-:T]/g, '');
+  return `${CONFIG.hwCloud.deviceId}_0_0_${ts}`;
 }
 
 // ===================== 仿真状态 =====================
@@ -32,7 +41,7 @@ function writeToWokwi(cmd) {
   const req = http.request({ hostname: '127.0.0.1', port: 3001, path: '/api/cmd',
     method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': data.length }
   }, () => {});
-  req.on('error', () => {});
+  req.on('error', (e) => console.error('writeToWokwi error:', e.message));
   req.write(data); req.end();
 }
 
@@ -51,7 +60,7 @@ function createMqttClient() {
     port: CONFIG.hwCloud.port,
     protocol: 'mqtts',
     rejectUnauthorized: false,
-    clientId: `69fc054c7f2e6c302f6e5dfd_bridge_0_0_0_2026052913`,
+    clientId: getClientId(),
     username: CONFIG.hwCloud.deviceId,
     password: pwd,
     clean: true,
@@ -60,10 +69,9 @@ function createMqttClient() {
 
   client.on('connect', () => {
     console.log('✓ 华为云 IoTDA 连接成功');
-    const setTopic = `$oc/devices/${CONFIG.hwCloud.deviceId}/sys/properties/set/#`;
-    const reportTopic = `$oc/devices/${CONFIG.hwCloud.deviceId}/sys/properties/report`;
-    client.subscribe(setTopic, { qos: 1 });
-    console.log('✓ 已订阅控制指令');
+    const reportTopic = `$oc/devices/${CONFIG.hwCloud.deviceId}/sys/messages/up`;
+    client.subscribe('sys/messages/down', { qos: 1 });
+    console.log('✓ 已订阅 sys/messages/down');
     // 立即上报一次
     client.publish(reportTopic, JSON.stringify(buildReport()), { qos: 1 });
   });
@@ -75,6 +83,8 @@ function createMqttClient() {
     try {
       const msg = JSON.parse(payload.toString());
       const props = (msg.services && msg.services[0] && msg.services[0].properties) || msg;
+      // 忽略自己发的传感器数据（含temperature字段的不是命令）
+      if (props.temperature !== undefined) return;
       if (props.led !== undefined) {
         state.led = Math.min(255, Math.max(0, Number(props.led)));
         state.ledMode = 'manual';
@@ -89,12 +99,19 @@ function createMqttClient() {
         writeToWokwi('LED:auto');
         console.log('切换自动调光');
       }
-      if (props.tempHigh !== undefined) state.tempHigh = Number(props.tempHigh);
-      if (props.humHigh !== undefined) state.humHigh = Number(props.humHigh);
+      if (props.tempHigh !== undefined) {
+        state.tempHigh = Number(props.tempHigh);
+        writeToWokwi('TEMPHIGH:' + state.tempHigh);
+      }
+      if (props.humHigh !== undefined) {
+        state.humHigh = Number(props.humHigh);
+        writeToWokwi('HUMHIGH:' + state.humHigh);
+      }
       if (props.feed === 1) {
         broadcast({ type: 'feeding', value: 1 });
+        writeToWokwi('FEED:NOW');
         console.log('远程喂食触发');
-        setTimeout(() => broadcast({ type: 'feeding', value: 0 }), 2000);
+        setTimeout(() => broadcast({ type: 'feeding', value: 0 }), 3000);
       }
       if (props.feedTimes !== undefined) {
         feedSchedule = props.feedTimes;
@@ -114,7 +131,7 @@ let mqttClient = createMqttClient();
 
 // ===================== 解析 Wokwi 串口数据 =====================
 function parseWokwiLine(line) {
-  const m = line.match(/T:(\d+)\s+H:(\d+)\s+L:(\d+)\s+LED:(\d+)\s+HR:(\d+)\s+ACT:(\d+)\s+FAN:(\d)/);
+  const m = line.match(/T:(-?\d+)\s+H:(\d+)\s+L:(\d+)\s+LED:(\d+)\s+HR:(\d+)\s+ACT:(\d+)\s+FAN:(\d)/);
   if (m) {
     state.temperature = parseInt(m[1]);
     state.humidity = parseInt(m[2]);
@@ -144,7 +161,7 @@ wokwiPort.on('data', (data) => {
       for (const [k, v] of Object.entries(state)) broadcast({ type: k, value: v });
       // MQTT 上报
       if (mqttClient && mqttClient.connected) {
-        const topic = `$oc/devices/${CONFIG.hwCloud.deviceId}/sys/properties/report`;
+        const topic = `$oc/devices/${CONFIG.hwCloud.deviceId}/sys/messages/up`;
         mqttClient.publish(topic, JSON.stringify(buildReport()), { qos: 1 });
       }
     }
@@ -159,9 +176,9 @@ wokwiPort.on('error', () => {
 wokwiPort.on('close', () => { if (!useSim) console.log('Wokwi 串口断开'); });
 wokwiPort.open();
 
-// ===================== 传感器仿真（Wokwi 未连接时使用） =====================
+// ===================== 传感器仿真（仅 Wokwi 未连接时运行） =====================
 setInterval(() => {
-  // 始终运行仿真，Wokwi 数据通过 /api/data 覆盖
+  if (!useSim) return;
   const t = state.temperature + (Math.random() - 0.5) * 0.6;
   state.temperature = Math.round(Math.max(15, Math.min(40, t)));
   const h = state.humidity + (Math.random() - 0.5);
@@ -182,7 +199,7 @@ setInterval(() => {
 
   // MQTT 上报
   if (mqttClient && mqttClient.connected) {
-    const topic = `$oc/devices/${CONFIG.hwCloud.deviceId}/sys/properties/report`;
+    const topic = `$oc/devices/${CONFIG.hwCloud.deviceId}/sys/messages/up`;
     mqttClient.publish(topic, JSON.stringify(buildReport()), { qos: 1 });
   }
 
@@ -198,8 +215,9 @@ setInterval(() => {
   const ts = `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
   if (feedSchedule.includes(ts)) {
     broadcast({ type: 'feeding', value: 1 });
+    writeToWokwi('FEED:NOW');
     console.log('定时喂食:', ts);
-    setTimeout(() => broadcast({ type: 'feeding', value: 0 }), 2000);
+    setTimeout(() => broadcast({ type: 'feeding', value: 0 }), 3000);
   }
 }, 60000);
 
@@ -222,6 +240,26 @@ const server = http.createServer((req, res) => {
           state.ledMode = 'auto';
           writeToWokwi('LED:auto');
         }
+        if (isCommand && d.feed === 1) {
+          broadcast({ type: 'feeding', value: 1 });
+          writeToWokwi('FEED:NOW');
+          console.log('手动喂食触发');
+          setTimeout(() => broadcast({ type: 'feeding', value: 0 }), 3000);
+        }
+        if (d.feedTimes !== undefined) {
+          feedSchedule = d.feedTimes;
+          console.log('喂食计划更新:', JSON.stringify(feedSchedule));
+        }
+        if (isCommand && d.tempHigh !== undefined) {
+          state.tempHigh = d.tempHigh;
+          writeToWokwi('TEMPHIGH:' + d.tempHigh);
+        }
+        if (isCommand && d.humHigh !== undefined) {
+          state.humHigh = d.humHigh;
+          writeToWokwi('HUMHIGH:' + d.humHigh);
+        }
+        if (d.hrLow !== undefined) state.hrLow = d.hrLow;
+        if (d.hrHigh !== undefined) state.hrHigh = d.hrHigh;
         // 自动调光 (Wokwi数据且在auto模式)
         if (!isCommand && d.light !== undefined && state.ledMode === 'auto') {
           state.led = Math.round((1 - d.light / 4095) * 255);
@@ -234,7 +272,7 @@ const server = http.createServer((req, res) => {
         for (const [k, v] of Object.entries(d)) broadcast({ type: k, value: v });
         // MQTT 上报华为云
         if (mqttClient && mqttClient.connected) {
-          const topic = `$oc/devices/${CONFIG.hwCloud.deviceId}/sys/properties/report`;
+          const topic = `$oc/devices/${CONFIG.hwCloud.deviceId}/sys/messages/up`;
           mqttClient.publish(topic, JSON.stringify(buildReport()), { qos: 1 });
         }
         useSim = false; // 关闭仿真，使用真实数据
@@ -274,7 +312,23 @@ wss.on('connection', (ws) => {
       }
       if (msg.type === 'feed') {
         broadcast({ type: 'feeding', value: 1 });
-        setTimeout(() => broadcast({ type: 'feeding', value: 0 }), 2000);
+        writeToWokwi('FEED:NOW');
+        console.log('手动喂食触发');
+        setTimeout(() => broadcast({ type: 'feeding', value: 0 }), 3000);
+      }
+      if (msg.type === 'tempHigh') {
+        state.tempHigh = Number(msg.value);
+        writeToWokwi('TEMPHIGH:' + state.tempHigh);
+        broadcast({ type: 'tempHigh', value: state.tempHigh });
+      }
+      if (msg.type === 'humHigh') {
+        state.humHigh = Number(msg.value);
+        writeToWokwi('HUMHIGH:' + state.humHigh);
+        broadcast({ type: 'humHigh', value: state.humHigh });
+      }
+      if (msg.type === 'feedTimes') {
+        feedSchedule = msg.value;
+        console.log('喂食计划更新:', feedSchedule);
       }
     } catch (e) {}
   });

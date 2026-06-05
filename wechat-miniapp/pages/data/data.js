@@ -27,7 +27,7 @@ Page({
     hrSummary: { avg: '--', max: '--', min: '--' }
   },
   history: { hr: [], temp: [], hum: [] },
-  charts: {}, ready: 0, timer: null,
+  charts: {}, ready: 0,
 
   onLoad() {
     const ids = ['cTemp', 'cHum', 'cHR'];
@@ -43,33 +43,34 @@ Page({
           ctx.scale(dpr, dpr);
           this.charts[id] = { ctx, w: res[0].width, h: res[0].height };
           this.ready++;
-          if (this.ready >= 3) { this.fetch(); this.timer = setInterval(() => this.fetch(), 3000); }
+          if (this.ready >= 3) { this._tick(); app.subscribe(this._update); }
         }
       });
     });
   },
-  onUnload() { if (this.timer) clearInterval(this.timer); },
 
-  fetch() {
-    wx.request({
-      url: 'http://127.0.0.1:3000/api/state',
-      success: (res) => {
-        const s = res.data;
-        const t = new Date().toLocaleTimeString().slice(0, 5);
-        if (s.heartrate) this.history.hr.push({ v: s.heartrate, t });
-        if (s.temperature !== undefined) this.history.temp.push({ v: s.temperature, t });
-        if (s.humidity !== undefined) this.history.hum.push({ v: s.humidity, t });
-        for (const k of ['hr', 'temp', 'hum']) {
-          if (this.history[k].length > 500) this.history[k] = this.history[k].slice(-300);
-        }
-        this.setData({
-          heartRate: s.heartrate || '--',
-          activityToday: s.activity || 0,
-          hrSummary: this.calcSummary(this.history.hr)
-        });
-        this.drawAll();
+  onUnload() { app.unsubscribe(this._update); },
+
+  _update: null,
+
+  _tick() {
+    this._update = () => {
+      const s = app.globalData.latest;
+      const t = new Date().toLocaleTimeString().slice(0, 5);
+      if (s.heartrate) this.history.hr.push({ v: s.heartrate, t });
+      if (s.temperature !== undefined) this.history.temp.push({ v: s.temperature, t });
+      if (s.humidity !== undefined) this.history.hum.push({ v: s.humidity, t });
+      for (const k of ['hr', 'temp', 'hum']) {
+        if (this.history[k].length > 500) this.history[k] = this.history[k].slice(-300);
       }
-    });
+      this.setData({
+        heartRate: s.heartrate ?? '--',
+        activityToday: s.activity || 0,
+        hrSummary: this.calcSummary(this.history.hr)
+      });
+      this.drawAll();
+    };
+    this._update();
   },
 
   calcSummary(arr) {
@@ -97,7 +98,6 @@ Page({
     const n = data.length;
     const step = n > 1 ? pw / (n - 1) : pw;
 
-    // 计算点位置
     const pts = data.map((p, i) => ({
       x: pad.left + i * step,
       y: pad.top + ph - (p.v - vmin) / range * ph,
@@ -105,14 +105,12 @@ Page({
       t: p.t
     }));
 
-    // 网格
     ctx.strokeStyle = '#f0f0f0'; ctx.lineWidth = 0.5;
     for (let i = 1; i <= 3; i++) {
       const y = pad.top + ph * i / 4;
       ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
     }
 
-    // 填充区域
     ctx.beginPath();
     ctx.moveTo(pts[0].x, H - pad.bottom);
     for (const pt of pts) ctx.lineTo(pt.x, pt.y);
@@ -123,14 +121,12 @@ Page({
     grad.addColorStop(1, color + '05');
     ctx.fillStyle = grad; ctx.fill();
 
-    // 曲线
     ctx.beginPath();
     ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineJoin = 'round';
     ctx.moveTo(pts[0].x, pts[0].y);
     for (let i = 1; i < n; i++) ctx.lineTo(pts[i].x, pts[i].y);
     ctx.stroke();
 
-    // 数据点
     for (let i = 0; i < n; i++) {
       const pt = pts[i];
       ctx.beginPath();
@@ -138,7 +134,6 @@ Page({
       ctx.arc(pt.x, pt.y, 2.5, 0, Math.PI * 2);
       ctx.fill();
     }
-    // 只在最新点显示数值
     const last = pts[n - 1];
     ctx.fillStyle = color;
     ctx.beginPath();
@@ -151,14 +146,12 @@ Page({
     const ly = last.y > 25 ? last.y - 6 : last.y + 16;
     ctx.fillText(last.v, lx, ly);
 
-    // Y 轴标签
     ctx.fillStyle = '#999'; ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
     for (let i = 0; i <= 4; i++) {
       const v = Math.round(vmin + range * (4 - i) / 4);
       ctx.fillText(v, pad.left - 4, pad.top + ph * i / 4 + 3);
     }
 
-    // 底部时间
     ctx.fillStyle = '#999'; ctx.textAlign = 'center';
     ctx.fillText(data[0].t, pad.left, H - 4);
     if (n > 1) ctx.fillText(data[n - 1].t, W - pad.right, H - 4);

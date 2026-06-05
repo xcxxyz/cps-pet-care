@@ -19,11 +19,6 @@ Page({
     this.setData({ [field]: parseInt(e.detail.value) || 0 });
   },
 
-  onSliderTemp(e) { this.setData({ tempHigh: parseInt(e.detail.value) }); },
-  onSliderHum(e)  { this.setData({ humHigh: parseInt(e.detail.value) }); },
-  onSliderHrLow(e) { this.setData({ hrLow: parseInt(e.detail.value) }); },
-  onSliderHrHigh(e){ this.setData({ hrHigh: parseInt(e.detail.value) }); },
-
   saveEnv() {
     const { tempHigh, humHigh } = this.data;
     app.sendCommand({ tempHigh, humHigh });
@@ -44,10 +39,20 @@ Page({
     this.setData({ feedTimes: times });
   },
 
-  addFeedTime() {
-    if (this.data.feedTimes.length < 4) {
-      this.setData({ feedTimes: [...this.data.feedTimes, '12:00'] });
-    }
+  onAddFeedTime(e) {
+    const time = e.detail.value;
+    if (this.data.feedTimes.length >= 4) return;
+    const times = [...this.data.feedTimes, time];
+    this.setData({ feedTimes: times });
+    app.sendCommand({ feedTimes: times });
+  },
+
+  deleteFeedTime(e) {
+    const idx = e.currentTarget.dataset.index;
+    const times = [...this.data.feedTimes];
+    times.splice(idx, 1);
+    this.setData({ feedTimes: times });
+    app.sendCommand({ feedTimes: times });
   },
 
   saveFeedTimes() {

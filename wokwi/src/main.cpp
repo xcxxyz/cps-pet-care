@@ -15,7 +15,7 @@ Servo feeder;
 int temperature = 0, humidity = 0, lightLevel = 0, ledBrightness = 0;
 int activityCount = 0, heartRate = 80;
 bool feeding = false, motionDetected = false, fanOn = false, manualLed = false;
-unsigned long lastReport = 0, feedTimer = 0;
+unsigned long lastReport = 0, feedTimer = 0, lastDayReset = 0;
 int tempHigh = 28, humHigh = 75;
 
 void setup() {
@@ -50,6 +50,17 @@ void loop() {
         ledBrightness = constrain(cmdBuf.substring(4).toInt(), 0, 255);
         manualLed = true;
         analogWrite(LED_PIN, ledBrightness);
+      } else if (cmdBuf == "FEED:NOW") {
+        if (!feeding) {
+          feeding = true; feedTimer = millis(); feeder.write(90);
+          Serial.println("FEED:1");
+        }
+      } else if (cmdBuf.startsWith("TEMPHIGH:")) {
+        tempHigh = constrain(cmdBuf.substring(9).toInt(), 15, 45);
+        Serial.printf("TEMPHIGH:%d\n", tempHigh);
+      } else if (cmdBuf.startsWith("HUMHIGH:")) {
+        humHigh = constrain(cmdBuf.substring(8).toInt(), 30, 95);
+        Serial.printf("HUMHIGH:%d\n", humHigh);
       }
       cmdBuf = "";
     } else cmdBuf += c;
@@ -80,12 +91,9 @@ void loop() {
   int pir = digitalRead(PIR_PIN);
   if (pir == HIGH && !motionDetected) { motionDetected = true; activityCount++; delay(300); }
   if (pir == LOW) motionDetected = false;
+  if (now - lastDayReset > 86400000UL) { activityCount = 0; lastDayReset = now; }
 
-  if (!feeding && now > 15000 && now % 30000 < 5000) {
-    feeding = true; feedTimer = now; feeder.write(90);
-    Serial.println("FEED:1");
-  }
-  if (feeding && now - feedTimer >= 2000) {
+  if (feeding && now - feedTimer >= 3000) {
     feeder.write(0); feeding = false;
     Serial.println("FEED:0");
   }
