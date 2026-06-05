@@ -1,12 +1,11 @@
-"""Wokwi RFC2217 双向桥接 — 读数据→HTTP, 写命令从主线程(线程安全)"""
-import serial, urllib.request, json, time, re, threading, queue
+"""Wokwi RFC2217 单连接双向桥接——同连接读写互不干扰"""
+import serial, urllib.request, json, time, re, threading, queue, os
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 PORT = 'rfc2217://localhost:4000'
 BRIDGE = 'http://localhost:3000/api/data'
 CMD_PORT = 3001
 cmd_queue = queue.Queue()
-ser = None
 
 class CmdHandler(BaseHTTPRequestHandler):
     def do_POST(self):
@@ -16,15 +15,19 @@ class CmdHandler(BaseHTTPRequestHandler):
         self.send_response(200); self.end_headers()
     def log_message(self, *args): pass
 
-def serve(): HTTPServer(('127.0.0.1', CMD_PORT), CmdHandler).serve_forever()
-threading.Thread(target=serve, daemon=True).start()
+threading.Thread(target=lambda: HTTPServer(('127.0.0.1', CMD_PORT), CmdHandler).serve_forever(), daemon=True).start()
+
+os.makedirs('D:/temp', exist_ok=True)
+with open('D:/temp/wokwi-bridge.pid', 'w') as f:
+    f.write(str(os.getpid()))
 
 while True:
     try:
-        ser = serial.serial_for_url(PORT, baudrate=115200, timeout=0.5)
-        print('Connected to Wokwi')
+        ser = serial.serial_for_url(PORT, baudrate=115200, timeout=0.3)
+        print(f'PID={os.getpid()} Connected')
         buf = ''
         while True:
+            # 读串口
             ch = ser.read(1)
             if ch:
                 buf += ch.decode('utf-8', errors='replace')
@@ -43,30 +46,26 @@ while True:
                             try:
                                 urllib.request.urlopen(urllib.request.Request(
                                     BRIDGE, data=json.dumps(data).encode(),
-                                    headers={'Content-Type': 'application/json'}
-                                ), timeout=2)
-                                print(f'Wokwi -> T:{data["temperature"]} H:{data["humidity"]} L:{data["light"]} ACT:{data["activity"]}')
+                                    headers={'Content-Type': 'application/json'}), timeout=2)
                             except: pass
                         elif 'FEED' in line:
                             val = 1 if 'FEED:1' in line else 0
                             try:
                                 urllib.request.urlopen(urllib.request.Request(
                                     BRIDGE, data=json.dumps({'feeding': val}).encode(),
-                                    headers={'Content-Type': 'application/json'}
-                                ), timeout=2)
-                                print(f'Wokwi -> FEED:{val}')
+                                    headers={'Content-Type': 'application/json'}), timeout=2)
                             except: pass
-            # 主线程统一处理写入(线程安全)
+
+            # 同连接写命令
             try:
-                while True:
-                    cmd = cmd_queue.get_nowait()
-                    if ser and ser.is_open:
-                        ser.write((cmd + '\n').encode())
-                        print(f'  -> Serial: {cmd}')
+                cmd = cmd_queue.get_nowait()
+                ser.write((cmd + '\r\n').encode())
+                ser.flush()
+                print(f'CMD: {cmd}')
             except queue.Empty:
                 pass
     except Exception as e:
-        print(f'Error: {e}, retry 3s...')
-        time.sleep(3)
+        print(f'Error: {e}, retry 2s...')
+        time.sleep(2)
         try: ser.close()
         except: pass

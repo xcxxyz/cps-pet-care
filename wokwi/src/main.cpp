@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <DHTesp.h>
+#include <WiFi.h>
 // 不用 ESP32Servo，直接 LEDC PWM 驱动舵机
 
 #define DHT_PIN     27
@@ -27,8 +28,13 @@ bool feeding = false, motionDetected = false, fanOn = false, manualLed = false;
 unsigned long lastReport = 0, feedTimer = 0, lastDayReset = 0;
 int tempHigh = 28, humHigh = 75;
 
+WiFiServer tcpServer(8080);
+
+void processCmd(String cmdBuf, unsigned long now);
+
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(115200);                             // UART0: 传感器数据输出
+  // 命令通过 Serial (UART0) 接收
   dht.setup(DHT_PIN, DHTesp::DHT22);
   delay(3000);
   ledcSetup(SERVO_CH, SERVO_FREQ, SERVO_RES);
@@ -43,38 +49,30 @@ void setup() {
     th.temperature, th.humidity, isnan(th.temperature), isnan(th.humidity));
 
   Serial.println("CPS Pet Care Ready");
+
+  // WiFi + TCP 服务器（Wokwi-GUEST 无需密码，频道 6）
+  WiFi.begin("Wokwi-GUEST", "", 6);
+  int wifiTry = 0;
+  while (WiFi.status() != WL_CONNECTED && wifiTry++ < 20) { delay(500); Serial.print("."); }
+  Serial.println(WiFi.status() == WL_CONNECTED ? "\nWiFi OK" : "\nWiFi FAIL");
+  tcpServer.begin();
+  Serial.println("TCP server on port 8080");
 }
 
 void loop() {
   unsigned long now = millis();
 
-  // 读取bridge串口指令
+  // 串口命令（UART2: RX=18, TX=19）
   while (Serial.available()) {
     static String cmdBuf = "";
     char c = (char)Serial.read();
-    if (c == '\n') { cmdBuf.trim();
-      if (cmdBuf == "LED:auto") {
-        manualLed = false;
-        ledBrightness = 255 - (lightLevel * 255 / 4095);
-        analogWrite(LED_PIN, ledBrightness);
-      } else if (cmdBuf.startsWith("LED:")) {
-        ledBrightness = constrain(cmdBuf.substring(4).toInt(), 0, 255);
-        manualLed = true;
-        analogWrite(LED_PIN, ledBrightness);
-      } else if (cmdBuf == "FEED:NOW") {
-        if (!feeding) {
-          feeding = true; feedTimer = millis(); servoWrite(180);
-          Serial.println("FEED:1");
-        }
-      } else if (cmdBuf.startsWith("TEMPHIGH:")) {
-        tempHigh = constrain(cmdBuf.substring(9).toInt(), 15, 45);
-        Serial.printf("TEMPHIGH:%d\n", tempHigh);
-      } else if (cmdBuf.startsWith("HUMHIGH:")) {
-        humHigh = constrain(cmdBuf.substring(8).toInt(), 30, 95);
-        Serial.printf("HUMHIGH:%d\n", humHigh);
-      }
+    if (c == '\n') {
+      cmdBuf.trim();
+      processCmd(cmdBuf, now);
       cmdBuf = "";
-    } else cmdBuf += c;
+    } else {
+      cmdBuf += c;
+    }
   }
 
   if (now - lastReport >= 3000) {
@@ -91,7 +89,7 @@ void loop() {
 
     if (temperature > tempHigh || humidity > humHigh)
       { fanOn = true; digitalWrite(FAN_PIN, HIGH); }
-    else if (temperature <= tempHigh - 1 && humidity <= humHigh - 3)
+    else
       { fanOn = false; digitalWrite(FAN_PIN, LOW); }
     heartRate = 80 + random(-5, 8);
 
@@ -104,9 +102,45 @@ void loop() {
   if (pir == LOW) motionDetected = false;
   if (now - lastDayReset > 86400000UL) { activityCount = 0; lastDayReset = now; }
 
-  if (feeding && now - feedTimer >= 5000) {
+  if (feeding && millis() - feedTimer >= 3000) {
     servoWrite(0); feeding = false;
     Serial.println("FEED:0");
   }
+  // TCP 客户端处理——从 bridge 接收命令
+  WiFiClient tcpCli = tcpServer.available();
+  if (tcpCli && tcpCli.connected()) {
+    while (tcpCli.available()) {
+      static String tcpBuf = "";
+      char c = (char)tcpCli.read();
+      if (c == '\n') { tcpBuf.trim(); processCmd(tcpBuf, now); tcpBuf = ""; }
+      else tcpBuf += c;
+    }
+  }
   delay(10);
+}
+
+// 统一命令处理
+void processCmd(String cmdBuf, unsigned long now) {
+  Serial.printf("RX:%s\n", cmdBuf.c_str());
+  if (cmdBuf == "LED:auto") {
+    manualLed = false;
+    ledBrightness = 255 - (lightLevel * 255 / 4095);
+    analogWrite(LED_PIN, ledBrightness);
+  } else if (cmdBuf.startsWith("LED:")) {
+    ledBrightness = constrain(cmdBuf.substring(4).toInt(), 0, 255);
+    manualLed = true;
+    analogWrite(LED_PIN, ledBrightness);
+  } else if (cmdBuf == "FEED:NOW") {
+    if (!feeding) {
+      feeding = true; feedTimer = now;
+      servoWrite(180);
+      Serial.println("FEED:1");
+    }
+  } else if (cmdBuf.startsWith("TEMPHIGH:")) {
+    tempHigh = constrain(cmdBuf.substring(9).toInt(), -20, 60);
+    Serial.printf("TEMPHIGH:%d\n", tempHigh);
+  } else if (cmdBuf.startsWith("HUMHIGH:")) {
+    humHigh = constrain(cmdBuf.substring(8).toInt(), 0, 100);
+    Serial.printf("HUMHIGH:%d\n", humHigh);
+  }
 }

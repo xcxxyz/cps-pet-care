@@ -39,9 +39,9 @@ let clients = new Set();
 function writeToWokwi(cmd) {
   const data = JSON.stringify({ cmd: cmd });
   const req = http.request({ hostname: '127.0.0.1', port: 3001, path: '/api/cmd',
-    method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': data.length }
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) }
   }, () => {});
-  req.on('error', (e) => console.error('writeToWokwi error:', e.message));
+  req.on('error', (e) => console.error('writeToWokwi:', e.message));
   req.write(data); req.end();
 }
 
@@ -100,12 +100,12 @@ function createMqttClient() {
         console.log('切换自动调光');
       }
       if (props.tempHigh !== undefined) {
-        state.tempHigh = Number(props.tempHigh);
-        writeToWokwi('TEMPHIGH:' + state.tempHigh);
+        const v = Number(props.tempHigh);
+        if (v !== state.tempHigh) { state.tempHigh = v; writeToWokwi('TEMPHIGH:' + v); }
       }
       if (props.humHigh !== undefined) {
-        state.humHigh = Number(props.humHigh);
-        writeToWokwi('HUMHIGH:' + state.humHigh);
+        const v = Number(props.humHigh);
+        if (v !== state.humHigh) { state.humHigh = v; writeToWokwi('HUMHIGH:' + v); }
       }
       if (props.feed === 1) {
         broadcast({ type: 'feeding', value: 1 });
@@ -116,6 +116,14 @@ function createMqttClient() {
       if (props.feedTimes !== undefined) {
         feedSchedule = props.feedTimes;
         console.log('喂食计划更新:', feedSchedule);
+      }
+      if (props.hrLow !== undefined) {
+        state.hrLow = Number(props.hrLow);
+        console.log('心率下限:', state.hrLow);
+      }
+      if (props.hrHigh !== undefined) {
+        state.hrHigh = Number(props.hrHigh);
+        console.log('心率上限:', state.hrHigh);
       }
     } catch (e) {}
   });
@@ -206,6 +214,14 @@ setInterval(() => {
   // WebSocket 广播
   for (const [k, v] of Object.entries(state)) broadcast({ type: k, value: v });
 
+  // 心率越界告警
+  if (state.hrLow && state.heartrate < state.hrLow) {
+    broadcast({ type: 'alert', value: '心率过低: ' + state.heartrate });
+  }
+  if (state.hrHigh && state.heartrate > state.hrHigh) {
+    broadcast({ type: 'alert', value: '心率过高: ' + state.heartrate });
+  }
+
   console.log(`T:${state.temperature} H:${state.humidity} L:${state.light} LED:${state.led} HR:${state.heartrate} ACT:${state.activity} FAN:${state.fanOn}`);
 }, 3000);
 
@@ -251,12 +267,12 @@ const server = http.createServer((req, res) => {
           console.log('喂食计划更新:', JSON.stringify(feedSchedule));
         }
         if (isCommand && d.tempHigh !== undefined) {
-          state.tempHigh = d.tempHigh;
-          writeToWokwi('TEMPHIGH:' + d.tempHigh);
+          const v = Number(d.tempHigh);
+          if (v !== state.tempHigh) { state.tempHigh = v; writeToWokwi('TEMPHIGH:' + v); }
         }
         if (isCommand && d.humHigh !== undefined) {
-          state.humHigh = d.humHigh;
-          writeToWokwi('HUMHIGH:' + d.humHigh);
+          const v = Number(d.humHigh);
+          if (v !== state.humHigh) { state.humHigh = v; writeToWokwi('HUMHIGH:' + v); }
         }
         if (d.hrLow !== undefined) state.hrLow = d.hrLow;
         if (d.hrHigh !== undefined) state.hrHigh = d.hrHigh;
@@ -317,18 +333,26 @@ wss.on('connection', (ws) => {
         setTimeout(() => broadcast({ type: 'feeding', value: 0 }), 3000);
       }
       if (msg.type === 'tempHigh') {
-        state.tempHigh = Number(msg.value);
-        writeToWokwi('TEMPHIGH:' + state.tempHigh);
+        const v = Number(msg.value);
+        if (v !== state.tempHigh) { state.tempHigh = v; writeToWokwi('TEMPHIGH:' + v); }
         broadcast({ type: 'tempHigh', value: state.tempHigh });
       }
       if (msg.type === 'humHigh') {
-        state.humHigh = Number(msg.value);
-        writeToWokwi('HUMHIGH:' + state.humHigh);
+        const v = Number(msg.value);
+        if (v !== state.humHigh) { state.humHigh = v; writeToWokwi('HUMHIGH:' + v); }
         broadcast({ type: 'humHigh', value: state.humHigh });
       }
       if (msg.type === 'feedTimes') {
         feedSchedule = msg.value;
         console.log('喂食计划更新:', feedSchedule);
+      }
+      if (msg.type === 'hrLow') {
+        state.hrLow = Number(msg.value);
+        console.log('心率下限:', state.hrLow);
+      }
+      if (msg.type === 'hrHigh') {
+        state.hrHigh = Number(msg.value);
+        console.log('心率上限:', state.hrHigh);
       }
     } catch (e) {}
   });

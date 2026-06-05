@@ -143,6 +143,8 @@ App({
       if (cmd.tempHigh !== undefined) ws.send({ data: JSON.stringify({ type: 'tempHigh', value: cmd.tempHigh }) });
       if (cmd.humHigh !== undefined) ws.send({ data: JSON.stringify({ type: 'humHigh', value: cmd.humHigh }) });
       if (cmd.feedTimes !== undefined) ws.send({ data: JSON.stringify({ type: 'feedTimes', value: cmd.feedTimes }) });
+      if (cmd.hrLow !== undefined) ws.send({ data: JSON.stringify({ type: 'hrLow', value: cmd.hrLow }) });
+      if (cmd.hrHigh !== undefined) ws.send({ data: JSON.stringify({ type: 'hrHigh', value: cmd.hrHigh }) });
     } else {
       // IoTDA MQTT 方式
       const props = {};
