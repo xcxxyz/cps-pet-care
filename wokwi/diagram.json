@@ -10,7 +10,7 @@
       "left": -274.2,
       "attrs": { "humidity": "48", "temperature": "19.3" }
     },
-    { "type": "wokwi-servo", "id": "sv1", "top": 113.2, "left": 105.6, "attrs": {} },
+    { "type": "wokwi-servo", "id": "sv1", "top": 113.2, "left": 105.6, "attrs": { "horn": "single" } },
     {
       "type": "wokwi-led",
       "id": "led1",

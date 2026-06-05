@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <DHTesp.h>
-#include <ESP32Servo.h>
+// 不用 ESP32Servo，直接 LEDC PWM 驱动舵机
 
 #define DHT_PIN     27
 #define SERVO_PIN   16
@@ -10,7 +10,16 @@
 #define FAN_PIN     14
 
 DHTesp dht;
-Servo feeder;
+
+// 舵机 PWM 通道和占空比
+#define SERVO_CH    8
+#define SERVO_FREQ  50   // 50Hz
+#define SERVO_RES   12   // 12-bit resolution (0-4095)
+// 0° = 500us → duty = 500/20000*4096 ≈ 102
+// 180° = 2400us → duty = 2400/20000*4096 ≈ 492
+#define SERVO_MIN   102
+#define SERVO_MAX   492
+#define servoWrite(a) ledcWrite(SERVO_CH, map(a, 0, 180, SERVO_MIN, SERVO_MAX))
 
 int temperature = 0, humidity = 0, lightLevel = 0, ledBrightness = 0;
 int activityCount = 0, heartRate = 80;
@@ -22,7 +31,9 @@ void setup() {
   Serial.begin(115200);
   dht.setup(DHT_PIN, DHTesp::DHT22);
   delay(3000);
-  feeder.attach(SERVO_PIN); feeder.write(0);
+  ledcSetup(SERVO_CH, SERVO_FREQ, SERVO_RES);
+  ledcAttachPin(SERVO_PIN, SERVO_CH);
+  servoWrite(0); delay(500);
   pinMode(LED_PIN, OUTPUT); pinMode(PIR_PIN, INPUT); pinMode(FAN_PIN, OUTPUT);
   digitalWrite(FAN_PIN, LOW);
 
@@ -52,7 +63,7 @@ void loop() {
         analogWrite(LED_PIN, ledBrightness);
       } else if (cmdBuf == "FEED:NOW") {
         if (!feeding) {
-          feeding = true; feedTimer = millis(); feeder.write(90);
+          feeding = true; feedTimer = millis(); servoWrite(180);
           Serial.println("FEED:1");
         }
       } else if (cmdBuf.startsWith("TEMPHIGH:")) {
@@ -93,8 +104,8 @@ void loop() {
   if (pir == LOW) motionDetected = false;
   if (now - lastDayReset > 86400000UL) { activityCount = 0; lastDayReset = now; }
 
-  if (feeding && now - feedTimer >= 3000) {
-    feeder.write(0); feeding = false;
+  if (feeding && now - feedTimer >= 5000) {
+    servoWrite(0); feeding = false;
     Serial.println("FEED:0");
   }
   delay(10);
