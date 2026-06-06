@@ -47,14 +47,14 @@ while True:
                                 urllib.request.urlopen(urllib.request.Request(
                                     BRIDGE, data=json.dumps(data).encode(),
                                     headers={'Content-Type': 'application/json'}), timeout=2)
-                            except: pass
+                            except Exception: pass
                         elif 'FEED' in line:
                             val = 1 if 'FEED:1' in line else 0
                             try:
                                 urllib.request.urlopen(urllib.request.Request(
                                     BRIDGE, data=json.dumps({'feeding': val}).encode(),
                                     headers={'Content-Type': 'application/json'}), timeout=2)
-                            except: pass
+                            except Exception: pass
 
             # 同连接写命令
             try:
@@ -68,4 +68,4 @@ while True:
         print(f'Error: {e}, retry 2s...')
         time.sleep(2)
         try: ser.close()
-        except: pass
+        except Exception: pass

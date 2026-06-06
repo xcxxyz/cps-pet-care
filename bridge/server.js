@@ -39,9 +39,11 @@ let clients = new Set();
 function writeToWokwi(cmd) {
   const data = JSON.stringify({ cmd: cmd });
   const req = http.request({ hostname: '127.0.0.1', port: 3001, path: '/api/cmd',
-    method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) }
-  }, () => {});
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) },
+    timeout: 3000
+  }, (res) => { res.resume(); });
   req.on('error', (e) => console.error('writeToWokwi:', e.message));
+  req.on('timeout', () => { req.destroy(); console.error('writeToWokwi timeout'); });
   req.write(data); req.end();
 }
 
@@ -49,6 +51,21 @@ function broadcast(msg) {
   const s = JSON.stringify(msg);
   for (const ws of clients) if (ws.readyState === WebSocket.OPEN) ws.send(s);
 }
+
+
+// 日志上限 1MB
+const MAX_LOG = 1 * 1024 * 1024;
+setInterval(() => {
+  const fs = require('fs');
+  const logFile = 'D:/temp/bridge.log';
+  try {
+    const stat = fs.statSync(logFile);
+    if (stat.size > MAX_LOG) {
+      const data = fs.readFileSync(logFile, 'utf8');
+      fs.writeFileSync(logFile, data.slice(-MAX_LOG / 2), 'utf8');
+    }
+  } catch(e) {}
+}, 3600000); // 每小时检查一次
 
 // ===================== 复用已验证的 MQTT 连接代码 =====================
 console.log('正在连接华为云 IoTDA...');
